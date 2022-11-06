@@ -1,4 +1,6 @@
 import dash
+import gunicorn
+
 from dash import dcc, html, no_update
 from dash.dependencies import Input, Output, State, MATCH, ALL
 from dash.exceptions import PreventUpdate
