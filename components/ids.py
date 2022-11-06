@@ -1,0 +1,20 @@
+STORE_GEOLOCATION = "store-geolocation"
+INPUT_LOCATION = "input-location"
+INPUT_DATE = "input-date"
+TEXT_GEOLOC = "txt-geolocation"
+
+STORE_PANELS = "store-panels"
+DIV_PANEL_LIST = "div-panel_list"
+BTN_ADD_PANEL = "btn-add_panel"
+BTN_CLEAR_PANELS = "btn-clear_panels"
+
+CHECKBOX_PANEL_ACTIVE = "check-panel_active"
+BTN_DELETE_PANEL = "btn-panel_delete"
+INPUT_PANEL_LABEL = "input-panel_label"
+INPUT_PANEL_AZI = "input-panel_azi"
+INPUT_PANEL_ALT = "input-panel_alt"
+INPUT_PANEL_SIZE = "input-panel_size"
+INPUT_PANEL_COLOR = "input-panel_color"
+INPUT_PANEL_SPECPWR = "input-panel_specific_power"
+
+DIV_GRAPH = "div-graph"

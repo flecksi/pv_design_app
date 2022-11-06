@@ -1,0 +1,25 @@
+[tool.poetry]
+name = "pv_design_app"
+version = "0.1.0"
+description = "a web app to estimate and design the output of a photo voltaic system"
+authors = ["Andreas Fleck"]
+
+[tool.poetry.dependencies]
+python = "^3.9"
+numpy = "^1.23.4"
+pandas = "^1.5.1"
+pydantic = "^1.10.2"
+dash = "^2.7.0"
+dash-bootstrap-components = "^1.2.1"
+timezonefinder = "^6.1.6"
+geopy = "^2.2.0"
+requests = "^2.28.1"
+pvlib = "^0.9.3"
+
+[tool.poetry.dev-dependencies]
+pytest = "^7.2.0"
+black = "^22.10.0"
+
+[build-system]
+requires = ["poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"
