@@ -93,7 +93,6 @@ def render(app: Dash) -> html.Div:
         [
             dcc.Store(id=ids.STORE_PANELS, storage_type="local"),
             html.H4([html.I(className="bi bi-microsoft me-2"), "Photovoltaic Panels"]),
-            html.Div(["Panels go here..."], id=ids.DIV_PANEL_LIST),
             dbc.Row(
                 dbc.Col(
                     [
@@ -116,5 +115,6 @@ def render(app: Dash) -> html.Div:
                     ]
                 )
             ),
+            html.Div(["Panels go here..."], id=ids.DIV_PANEL_LIST),
         ]
     )

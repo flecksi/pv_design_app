@@ -163,16 +163,16 @@ def render(app: Dash) -> html.Div:
         )
         fig.update_layout(
             autosize=True,
-            height=800,
-            # width=1400,
-            margin=dict(l=5, r=5, t=30, b=5),
+            # height=800,
+            # width="90vh",
+            margin=dict(l=5, r=5, t=50, b=5),
             hovermode="x unified",
             # plot_bgcolor="white",
             title=f"Optimal DC power and energy in one day ({geolocation.day}.{geolocation.month}.{geolocation.year})",
             yaxis1=dict(title="Power [W]"),
             yaxis2=dict(title="Energy [kWh]"),
         )
-        return dcc.Graph(figure=fig)
+        return dcc.Graph(figure=fig, responsive=True, style={"height": "70vh"})
 
     return dcc.Loading(
         html.Div(

@@ -15,9 +15,26 @@ def create_layout(app: Dash) -> dbc.Container:
                         children=[panels.render(app)],
                         # style=dict(background="grey"),
                         width="auto",
+                        style={"maxHeight": "70vh", "overflow": "scroll"},
                     ),
                     dbc.Col(
-                        children=[result_graph.render(app)],
+                        children=[
+                            dbc.Row(
+                                dbc.Tabs(
+                                    [
+                                        dbc.Tab(
+                                            label="Day",
+                                            tab_style={"marginLeft": "auto"},
+                                        ),
+                                        dbc.Tab(
+                                            label="Year",
+                                            tab_style={"marginRight": "auto"},
+                                        ),
+                                    ]
+                                )
+                            ),
+                            dbc.Row(result_graph.render(app)),
+                        ],
                         # style=dict(background="orange"),
                         width=True,
                     ),
