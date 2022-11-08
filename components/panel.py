@@ -2,6 +2,8 @@ from dash import Dash, html
 import dash_bootstrap_components as dbc
 from pydantic import BaseModel
 import pytz
+import calendar
+from datetime import datetime
 
 import numpy as np
 import pandas as pd
@@ -67,6 +69,45 @@ class Panel(BaseModel):
         clearsky = loc.get_clearsky(times, model="simplified_solis")
         mc.run_model(clearsky)
         return mc.results.dc.values
+
+    def monthly_energy(
+        self, loc: Geolocation, year: int, label: str, freq_minutes: int = 60
+    ) -> pd.DataFrame:
+
+        tz = pytz.timezone(loc.tz_str)
+
+        starttime = datetime(
+            year=year,
+            month=1,
+            day=1,
+        )
+        endtime = datetime(
+            year=year + 1,
+            month=1,
+            day=1,
+        )
+
+        times = pd.date_range(
+            f"{starttime:%Y-%m-%d %H:%M}",
+            f"{endtime:%Y-%m-%d %H:%M}",
+            freq=f"{freq_minutes}min",
+            tz=tz,
+        )[:-1]
+
+        pwr = self.dc_power(loc=loc, times=times)
+
+        df_times = pd.DataFrame(
+            dict(pwr=pwr, month=[t.month for t in times]), index=times
+        )
+
+        pwr_mean_W = df_times.groupby("month").mean().pwr.values
+        pwr_count_h = df_times.groupby("month").count().pwr.values * freq_minutes / 60
+        e_kWh = pwr_mean_W * pwr_count_h / 1000
+
+        months = [calendar.month_abbr[m + 1] for m in range(12)]
+
+        df_result = pd.DataFrame(data={f"{label}": e_kWh}, index=months)
+        return df_result
 
     def render_as_card(self, app: Dash, i: int) -> dbc.Card:
         return dbc.Card(

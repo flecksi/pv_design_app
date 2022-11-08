@@ -25,12 +25,15 @@ def create_layout(app: Dash) -> dbc.Container:
                                         dbc.Tab(
                                             label="Day",
                                             tab_style={"marginLeft": "auto"},
+                                            tab_id=ids.TAB_PLOT_DAY,
                                         ),
                                         dbc.Tab(
                                             label="Year",
                                             tab_style={"marginRight": "auto"},
+                                            tab_id=ids.TAB_PLOT_YEAR,
                                         ),
-                                    ]
+                                    ],
+                                    id=ids.TABS_PLOT,
                                 )
                             ),
                             dbc.Row(result_graph.render(app)),
