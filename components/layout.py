@@ -8,6 +8,26 @@ from . import geolocation, panels, result_graph, ids
 def create_layout(app: Dash) -> dbc.Container:
     return dbc.Container(
         [
+            dbc.NavbarSimple(
+                children=[
+                    dbc.NavItem(
+                        dbc.NavLink(html.P("look at the sourcecode on my")),
+                    ),
+                    dbc.NavItem(
+                        dbc.NavLink(
+                            html.H4([html.I(className="bi bi-github me-2"), "Github"]),
+                            href="https://github.com/flecksi/pv_design_app",
+                            target="https://github.com/flecksi/pv_design_app",
+                        )
+                    ),
+                ],
+                brand="PV Design - plan your photovoltaic system and estimate it's yield",
+                fluid=True,
+                # brand_href="#",
+                color="dark",
+                sticky="top",
+                dark=True,
+            ),
             dbc.Row(dbc.Col(geolocation.render(app))),
             dbc.Row(
                 [

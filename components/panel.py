@@ -126,6 +126,7 @@ class Panel(BaseModel):
                                                 value=self.label,
                                                 type="text",
                                                 placeholder="enter a name...",
+                                                debounce=True,
                                                 id=dict(
                                                     type=ids.INPUT_PANEL_LABEL, index=i
                                                 ),
@@ -189,6 +190,14 @@ class Panel(BaseModel):
                                     id=dict(type=ids.INPUT_PANEL_AZI, index=i),
                                 ),
                                 dbc.InputGroupText("deg"),
+                                dbc.Button(
+                                    [html.I(className="bi bi-magic")],
+                                    id=dict(type=ids.BTN_OPTIMIZE_AZI, index=i),
+                                ),
+                                dbc.Tooltip(
+                                    "Set optimal azimuth angle for maximized annual yield",
+                                    target=dict(type=ids.BTN_OPTIMIZE_AZI, index=i),
+                                ),
                             ]
                         ),
                         dbc.InputGroup(
@@ -205,6 +214,14 @@ class Panel(BaseModel):
                                     id=dict(type=ids.INPUT_PANEL_ALT, index=i),
                                 ),
                                 dbc.InputGroupText("deg"),
+                                dbc.Button(
+                                    [html.I(className="bi bi-magic")],
+                                    id=dict(type=ids.BTN_OPTIMIZE_TILT, index=i),
+                                ),
+                                dbc.Tooltip(
+                                    "Set optimal tilt angle for maximized annual yield",
+                                    target=dict(type=ids.BTN_OPTIMIZE_TILT, index=i),
+                                ),
                             ]
                         ),
                         dbc.InputGroup(

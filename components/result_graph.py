@@ -1,4 +1,6 @@
 from dash import Dash, html, dcc, Input, Output
+import dash_bootstrap_components as dbc
+
 from . import ids
 from .panels import AllPanels
 from .geolocation import Geolocation
@@ -116,12 +118,13 @@ def create_day_figure(
         yaxis1=dict(title="Power [W]"),
         yaxis2=dict(title="Energy [kWh]"),
     )
+    style_figure(fig=fig)
     return fig
 
 
 def create_annual_figure(
     geolocation: Geolocation, allpanels: AllPanels, freq_minutes: int = 60
-) -> go.Figure:
+) -> tuple[go.Figure, pd.DataFrame]:
     tz = pytz.timezone(geolocation.tz_str)
 
     panel_energy_dfs = [
@@ -140,7 +143,7 @@ def create_annual_figure(
         label = p.label if (p.label is not None and p.label != "") else f"{i+1}.Panel"
         fig.add_trace(
             go.Bar(
-                name=f"{label} ({result[col].sum():.1f} kWh/Y)",
+                name=f"{label}",  # ({result[col].sum():.1f} kWh/Y)",
                 x=result.index,
                 y=result[col],
                 hovertemplate="%{x}: %{y:.1f} kWh",  #%{_xother}",
@@ -148,10 +151,11 @@ def create_annual_figure(
                 marker_color=p.color,
             )
         )
+        result.rename(columns={f"p_{i}": label}, inplace=True)
 
     fig.add_trace(
         go.Bar(
-            name=f"<b>total ({result.sum().sum():.1f} kWh/Y)</b>",
+            name=f"<b>total",  # ({result.sum().sum():.1f} kWh/Y)</b>",
             x=result.index,
             y=result.sum(axis=1),
             hovertemplate="%{x}: %{y:.1f} kWh",  #%{_xother}",
@@ -164,10 +168,39 @@ def create_annual_figure(
         # barmode='stack',
         barmode="group",
         # margin=dict(l=10, r=10, t=50, b=5),
-        title="Monthly Energy Yield",
+        title=f"Monthly energy yields within one year ({geolocation.year})",
         yaxis_title="Energy [kWh]",
     )
-    return fig
+    style_figure(fig=fig)
+    return fig, result
+
+
+def style_figure(fig: go.Figure):
+    fig.update_xaxes(
+        showgrid=True,
+        gridwidth=1,
+        gridcolor="DarkGrey",
+        zeroline=True,
+        zerolinewidth=2,
+        zerolinecolor="black",
+    )
+    fig.update_yaxes(
+        showgrid=True,
+        gridwidth=1,
+        gridcolor="DarkGrey",
+        zeroline=True,
+        zerolinewidth=2,
+        zerolinecolor="black",
+    )
+    fig.update_layout(
+        margin=dict(l=5, r=5, t=50, b=5),
+        legend=dict(
+            x=0.0,
+            y=1.0,
+            bgcolor="rgba(255, 255, 255, 0.9)",
+            bordercolor="rgba(255, 255, 255, 1)",
+        ),
+    )
 
 
 def render(app: Dash) -> html.Div:
@@ -197,42 +230,37 @@ def render(app: Dash) -> html.Div:
 
         if tab == ids.TAB_PLOT_DAY:
             fig = create_day_figure(geolocation=geolocation, allpanels=allpanels)
+            return dcc.Graph(figure=fig, responsive=True, style={"height": "70vh"})
+
         elif tab == ids.TAB_PLOT_YEAR:
-            fig = create_annual_figure(geolocation=geolocation, allpanels=allpanels)
+            fig, df_annual = create_annual_figure(
+                geolocation=geolocation, allpanels=allpanels
+            )
+            df_annual = df_annual.T
+            df_annual["Total"] = df_annual.sum(axis=1)
+            totals_dict = df_annual.sum(axis=0).to_dict()
+            df_annual = pd.concat(
+                [df_annual, pd.DataFrame(totals_dict, index=["Total"])], axis=0
+            )
+
+            for col in df_annual:
+                for i in range(len(df_annual)):
+                    df_annual[col].iloc[i] = round(
+                        df_annual[col].iloc[i], 1
+                    )  # f"{round(df_annual[col].iloc[i], 1):.01f}"
+            df_annual.index.set_names("Panel", inplace=True)
+
+            table = dbc.Table.from_dataframe(
+                df_annual, striped=True, bordered=True, hover=False, index=True
+            )
+
+            return [
+                dcc.Graph(figure=fig, responsive=True, style={"height": "70vh"}),
+                table,
+            ]
 
         else:
             return html.H4("Something went horribly wrong!")
-
-        fig.update_xaxes(
-            showgrid=True,
-            gridwidth=1,
-            gridcolor="DarkGrey",
-            # showline=True,
-            # linecolor="black",
-            zeroline=True,
-            zerolinewidth=2,
-            zerolinecolor="black",
-        )
-        fig.update_yaxes(
-            showgrid=True,
-            gridwidth=1,
-            gridcolor="DarkGrey",
-            # showline=True,
-            # linecolor="black",
-            zeroline=True,
-            zerolinewidth=2,
-            zerolinecolor="black",
-        )
-        fig.update_layout(
-            margin=dict(l=5, r=5, t=50, b=5),
-            legend=dict(
-                x=0.0,
-                y=1.0,
-                bgcolor="rgba(255, 255, 255, 0.9)",
-                bordercolor="rgba(255, 255, 255, 1)",
-            ),
-        )
-        return dcc.Graph(figure=fig, responsive=True, style={"height": "70vh"})
 
     return dcc.Loading(
         html.Div(

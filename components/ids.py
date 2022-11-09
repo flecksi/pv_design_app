@@ -19,5 +19,11 @@ INPUT_PANEL_ALT = "input-panel_alt"
 INPUT_PANEL_SIZE = "input-panel_size"
 INPUT_PANEL_COLOR = "input-panel_color"
 INPUT_PANEL_SPECPWR = "input-panel_specific_power"
+BTN_OPTIMIZE_ANGLES = "btn-optimize-azi"
+BTN_OPTIMIZE_AZI = "btn-optimize-azi"
+BTN_OPTIMIZE_TILT = "btn-optimize-tilt"
 
 DIV_GRAPH = "div-graph"
+
+MODAL_OPTI = "modal-opti"
+DIV_OPTI_GRAPH = "div-opti-graph"
