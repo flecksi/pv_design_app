@@ -172,6 +172,8 @@ def create_annual_figure(
         yaxis_title="Energy [kWh]",
     )
     style_figure(fig=fig)
+    fig.update_layout(margin=dict(l=100, r=115, t=50, b=5))
+
     return fig, result
 
 
