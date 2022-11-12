@@ -11,6 +11,7 @@ import pytz
 from datetime import date, datetime
 
 import numpy as np
+from scipy.interpolate import interp2d
 import pandas as pd
 from scipy.integrate import cumtrapz
 
@@ -217,6 +218,110 @@ def style_figure(fig: go.Figure):
     )
 
 
+def create_optimal_contour_figure(
+    geolocation: Geolocation,
+    thedate: date,
+    monthly_weather_factors: list[float],
+    allpanels: AllPanels,
+    freq_minutes: int = 60,
+) -> go.Figure:
+
+    opti_matrix_3d = np.array(geolocation.opti_angle_matrix)
+    opti_max = -1
+    opti_matrix_2d = np.zeros(
+        (len(geolocation.opti_azi_vect) + 1, len(geolocation.opti_tilt_vect))
+    )
+    for i in range(len(geolocation.opti_azi_vect) + 1):
+        for j in range(len(geolocation.opti_tilt_vect)):
+            if i >= len(geolocation.opti_azi_vect):
+                opti = sum(opti_matrix_3d[0, j, :] * monthly_weather_factors)
+            else:
+                opti = sum(opti_matrix_3d[i, j, :] * monthly_weather_factors)
+
+            opti_matrix_2d[i, j] = opti
+            opti_max = max(opti_max, opti)
+
+    opti_matrix_2d = opti_matrix_2d / opti_max * 100.0
+
+    eff_min = np.min(np.min(opti_matrix_2d))
+
+    fig = go.Figure()
+    fig.add_trace(
+        go.Contour(
+            x=geolocation.opti_azi_vect + [360],
+            y=geolocation.opti_tilt_vect,
+            z=np.round(opti_matrix_2d.T, 2),
+            name="efficiency",
+            hovertemplate="azimuth: %{x}°<br>tilt: %{y}°<br>eff.: %{z}%<extra></extra>",
+            contours=dict(
+                coloring="heatmap",
+                showlabels=True,  # show labels on contours
+                labelfont=dict(  # label font properties
+                    size=16,
+                ),
+                start=np.floor(eff_min - (eff_min % 5)),
+                size=5,
+                end=100,
+            ),
+            colorbar=dict(
+                title="Efficiency [%]",  # title here
+                titlefont=dict(
+                    size=14,
+                ),
+            ),
+        )
+    )
+    f = interp2d(
+        geolocation.opti_azi_vect + [360],
+        geolocation.opti_tilt_vect,
+        opti_matrix_2d.T,
+        kind="cubic",
+    )
+    for i, p in enumerate(allpanels.panels):
+        label = p.label if (p.label is not None and p.label != "") else f"{i+1}.Panel"
+        eff = np.round(f(p.azimuth_deg, p.altitude_deg)[0], 2)
+        if p.active:
+            fig.add_trace(
+                go.Scatter(
+                    x=[p.azimuth_deg],
+                    y=[p.altitude_deg],
+                    name=label,
+                    # text=label,
+                    mode="markers",
+                    showlegend=False,
+                    marker_symbol="square-cross",
+                    hovertemplate=f"<b>{label}</b><br>azimuth: %{{x}}°<br>tilt: %{{y}}°<br>eff.:{eff}%<extra></extra>",
+                    marker=dict(
+                        size=30,
+                        color=p.color,
+                        line=dict(width=2, color="DarkSlateGrey"),
+                    ),
+                )
+            )
+    # fig.add_vline(
+    #     x=180,
+    #     line=dict(color="black", width=2, dash="dash"),
+    #     annotation_text="Optimal Azimuth=180°",
+    #     annotation_position="top left",
+    #     annotation=dict(font_size=20, font_color="black"),
+    # )
+    # fig.add_hline(
+    #     y=34,
+    #     line=dict(color="black", width=2, dash="dash"),
+    #     annotation_text="Optimal Tilt=34°",
+    #     annotation_position="top left",
+    #     annotation=dict(font_size=20, font_color="black"),
+    # )
+    fig.update_layout(
+        margin=dict(l=5, r=5, t=5, b=5),
+        yaxis_title="Tilt Angle [deg]",
+        xaxis_title="Azimuth Angle [deg]",
+        xaxis=dict(dtick=45),
+        yaxis=dict(dtick=10),
+    )
+    return fig
+
+
 def render(app: Dash) -> html.Div:
     @app.callback(
         Output(ids.DIV_GRAPH, "children"),
@@ -289,7 +394,15 @@ def render(app: Dash) -> html.Div:
                 dcc.Graph(figure=fig, responsive=True, style={"height": "70vh"}),
                 table,
             ]
-
+        elif tab == ids.TAB_PLOT_OPTI:
+            fig = create_optimal_contour_figure(
+                geolocation=geolocation,
+                thedate=date_object,
+                allpanels=allpanels,
+                monthly_weather_factors=monthly_weather_factors,
+                freq_minutes=60,
+            )
+            return dcc.Graph(figure=fig, responsive=True, style={"height": "70vh"})
         else:
             return html.H4("Something went horribly wrong!")
 

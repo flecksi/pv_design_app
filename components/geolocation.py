@@ -8,26 +8,13 @@ import requests
 import pytz
 from datetime import date, datetime
 from pydantic import BaseModel
+import numpy as np
+
 from . import ids
+from .location import Geolocation
+from .panel import Panel
 
 tf = TimezoneFinder()  # reuse
-
-
-class Geolocation(BaseModel):
-    lat: float = None
-    lon: float = None
-    ele: float = None
-    tz_str: str = None
-    address: str = None
-
-    @property
-    def ready(self) -> bool:
-        return (
-            isinstance(self.lat, float)
-            and isinstance(self.lon, float)
-            and isinstance(self.ele, float)
-            and isinstance(self.tz_str, str)
-        )
 
 
 def render(app: Dash) -> html.Div:
@@ -36,6 +23,7 @@ def render(app: Dash) -> html.Div:
             Output(ids.STORE_GEOLOCATION, "data"),
             Output(ids.INPUT_LOCATION, "valid"),
             Output(ids.INPUT_LOCATION, "invalid"),
+            Output(ids.COLLAPSE_MAIN_APP, "is_open"),
         ],
         [
             Input(ids.INPUT_LOCATION, "value"),
@@ -49,7 +37,7 @@ def render(app: Dash) -> html.Div:
             geolocator = Nominatim(user_agent="myGeocoder")
             location = geolocator.geocode(location_str, timeout=2)
             if location is None:
-                return ({}, False, True)
+                return ({}, False, True, False)
             lat = location.latitude
             lon = location.longitude
 
@@ -61,18 +49,39 @@ def render(app: Dash) -> html.Div:
             )
             ele = ele_response.json()["results"][0]["elevation"]
 
-            return (
-                Geolocation(
-                    lat=lat,
-                    lon=lon,
-                    ele=ele,
-                    tz_str=tz_str,
-                    address=location.address,
-                ).dict(),
-                True,
-                False,
+            geolocation = Geolocation(
+                lat=lat,
+                lon=lon,
+                ele=ele,
+                tz_str=tz_str,
+                address=location.address,
             )
-        return ({}, False, True)
+
+            azi_vect = np.linspace(0, 360, 8, endpoint=False)
+            tilt_vect = np.linspace(0, 90, 7, endpoint=True)
+            opti_angle_matrix = np.zeros((8, 7, 12))
+
+            for i, azi in enumerate(azi_vect):
+                for j, tilt in enumerate(tilt_vect):
+                    p = Panel(
+                        label="opti_panel",
+                        size_m2=1.0,
+                        azimuth_deg=azi,
+                        altitude_deg=tilt,
+                    )
+                    df = p.monthly_energy(
+                        loc=geolocation,
+                        monthly_weather_factors=[1.0] * 12,
+                        year=date.today().year,
+                        label="o",
+                    )
+                    opti_angle_matrix[i, j, :] = df["o"].values
+
+            geolocation.opti_angle_matrix = list(opti_angle_matrix)
+            geolocation.opti_azi_vect = list(azi_vect)
+            geolocation.opti_tilt_vect = list(tilt_vect)
+            return (geolocation.dict(), True, False, True)
+        return ({}, False, True, False)
 
     @app.callback(
         Output(ids.TEXT_GEOLOC, "children"),
@@ -97,59 +106,69 @@ def render(app: Dash) -> html.Div:
         else:
             return "no valid coordinates"
 
-    return html.Div(
-        [
-            dcc.Store(id=ids.STORE_GEOLOCATION, storage_type="local"),
-            dbc.Card(
-                [
-                    dbc.CardHeader(
-                        [
-                            html.H4(
-                                [
-                                    html.I(className="bi bi-globe me-2"),
-                                    " Location",
-                                ]
-                            ),
-                        ]
-                    ),
-                    dbc.CardBody(
-                        [
-                            dbc.Row(
-                                [
+    return dcc.Loading(
+        html.Div(
+            [
+                dcc.Store(id=ids.STORE_GEOLOCATION, storage_type="local"),
+                dbc.Card(
+                    [
+                        dbc.CardHeader(
+                            [
+                                html.H4(
+                                    [
+                                        html.I(
+                                            className="bi bi-geo-alt me-2"
+                                        ),  # bi-globe
+                                        " Location",
+                                    ]
+                                ),
+                            ]
+                        ),
+                        dbc.CardBody(
+                            [
+                                dbc.Row(
+                                    [
+                                        dbc.Col(
+                                            dbc.InputGroup(
+                                                [
+                                                    # dbc.InputGroupText(
+                                                    #     [
+                                                    #         html.I(
+                                                    #             className="bi bi-globe"  # me-2"
+                                                    #         ),
+                                                    #     ]
+                                                    # ),
+                                                    dbc.Input(
+                                                        id=ids.INPUT_LOCATION,
+                                                        type="text",
+                                                        placeholder="Enter address here and press enter",
+                                                        persistence=True,
+                                                        debounce=True,
+                                                    ),
+                                                ]
+                                            )
+                                        )
+                                    ]
+                                ),
+                                dbc.Row(
                                     dbc.Col(
-                                        dbc.InputGroup(
-                                            [
-                                                dbc.InputGroupText(
-                                                    [
-                                                        html.I(
-                                                            className="bi bi-globe"  # me-2"
-                                                        ),
-                                                    ]
-                                                ),
-                                                dbc.Input(
-                                                    id=ids.INPUT_LOCATION,
-                                                    type="text",
-                                                    placeholder="Enter address here and press enter",
-                                                    persistence=True,
-                                                    debounce=True,
-                                                ),
-                                            ]
+                                        html.P(
+                                            "Resolved City/Country and Timezone",
+                                            id=ids.TEXT_GEOLOC,
+                                            className="card-text",
                                         )
                                     )
-                                ]
-                            ),
-                            html.P(
-                                "Resolved City/Country and Timezone",
-                                id=ids.TEXT_GEOLOC,
-                                className="card-text",
-                            ),
-                        ]
-                    ),
-                ],
-                color="success",
-                inverse=True,
-                className="shadow mb-3"
-                # style={"width": "18rem"},
-            ),
-        ]
+                                ),
+                            ]
+                        ),
+                    ],
+                    color="success",
+                    inverse=True,
+                    className="shadow mb-3"
+                    # style={"width": "18rem"},
+                ),
+            ]
+        ),
+        # debug=True,
+        fullscreen=True,
     )

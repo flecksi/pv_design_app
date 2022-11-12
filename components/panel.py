@@ -9,6 +9,7 @@ import numpy as np
 import pandas as pd
 from pvlib import pvsystem, modelchain, location
 
+from functools import lru_cache
 
 from . import ids
 from .geolocation import Geolocation
@@ -24,6 +25,9 @@ class Panel(BaseModel):
     active: bool = True
     color: str = None
     pdc0_Wpm2: float = None
+
+    class Config:
+        arbitrary_types_allowed = True
 
     @property
     def ready(self) -> bool:
@@ -70,6 +74,7 @@ class Panel(BaseModel):
         mc.run_model(clearsky)
         return mc.results.dc.values
 
+    # @lru_cache(maxsize=32)
     def monthly_energy(
         self,
         loc: Geolocation,

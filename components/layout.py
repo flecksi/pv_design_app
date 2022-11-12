@@ -29,41 +29,56 @@ def create_layout(app: Dash) -> dbc.Container:
                 dark=True,
             ),
             dbc.Row(dbc.Col(geolocation.render(app))),
-            dbc.Row(dbc.Col(weather.render(app))),
-            dbc.Row(
+            dbc.Collapse(
                 [
-                    dbc.Col(
-                        children=[panels.render(app)],
-                        width="auto",
-                        style={"maxHeight": "70vh", "overflow": "scroll"},
-                    ),
-                    dbc.Col(
-                        children=[
-                            dbc.Row(
-                                [
-                                    dbc.Tabs(
-                                        [
-                                            dbc.Tab(
-                                                label="Day",
-                                                tab_style={"marginLeft": "auto"},
-                                                tab_id=ids.TAB_PLOT_DAY,
-                                            ),
-                                            dbc.Tab(
-                                                label="Year",
-                                                tab_style={"marginRight": "auto"},
-                                                tab_id=ids.TAB_PLOT_YEAR,
-                                            ),
-                                        ],
-                                        id=ids.TABS_PLOT,
-                                    ),
-                                    dateinput.render(app),
-                                    dbc.Row(result_graph.render(app)),
-                                ]
+                    dbc.Row(dbc.Col(weather.render(app))),
+                    dbc.Row(
+                        [
+                            dbc.Col(
+                                children=[panels.render(app)],
+                                width="auto",
+                                style={"maxHeight": "70vh", "overflow": "scroll"},
                             ),
-                        ],
-                        width=True,
+                            dbc.Col(
+                                children=[
+                                    dbc.Row(
+                                        [
+                                            dbc.Tabs(
+                                                [
+                                                    dbc.Tab(
+                                                        label="Day",
+                                                        tab_style={
+                                                            "marginLeft": "auto"
+                                                        },
+                                                        tab_id=ids.TAB_PLOT_DAY,
+                                                    ),
+                                                    dbc.Tab(
+                                                        label="Year",
+                                                        # tab_style={"marginRight": "auto"},
+                                                        tab_id=ids.TAB_PLOT_YEAR,
+                                                    ),
+                                                    dbc.Tab(
+                                                        label="Angle Efficiency",
+                                                        tab_style={
+                                                            "marginRight": "auto"
+                                                        },
+                                                        tab_id=ids.TAB_PLOT_OPTI,
+                                                    ),
+                                                ],
+                                                id=ids.TABS_PLOT,
+                                            ),
+                                            dateinput.render(app),
+                                            dbc.Row(result_graph.render(app)),
+                                        ]
+                                    ),
+                                ],
+                                width=True,
+                            ),
+                        ]
                     ),
-                ]
+                ],
+                is_open=True,
+                id=ids.COLLAPSE_MAIN_APP,
             ),
         ],
         fluid=True,

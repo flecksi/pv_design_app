@@ -6,7 +6,7 @@ from pydantic import BaseModel
 import json
 import numpy as np
 
-from . import opti_modal, ids
+from . import ids
 from .panel import Panel
 
 
@@ -91,7 +91,6 @@ def render(app: Dash) -> html.Div:
 
     return html.Div(
         [
-            opti_modal.render(app),
             dcc.Store(id=ids.STORE_PANELS, storage_type="local"),
             html.H4([html.I(className="bi bi-microsoft me-2"), "Photovoltaic Panels"]),
             dbc.Row(
@@ -102,7 +101,7 @@ def render(app: Dash) -> html.Div:
                                 html.I(className="bi bi-plus-circle me-2"),
                                 "Add Panel",
                             ],
-                            className="me-1",
+                            className="m-1",
                             id=ids.BTN_ADD_PANEL,
                         ),
                         dbc.Button(
@@ -110,16 +109,8 @@ def render(app: Dash) -> html.Div:
                                 html.I(className="bi bi-trash me-2"),
                                 "Clear All",
                             ],
-                            className="me-1",
+                            className="m-1",
                             id=ids.BTN_CLEAR_PANELS,
-                        ),
-                        dbc.Button(
-                            [
-                                html.I(className="bi bi-magic me-2"),
-                                "Optimal Angles",
-                            ],
-                            className="me-1",
-                            id=ids.BTN_OPTIMIZE_ANGLES,
                         ),
                     ]
                 )
