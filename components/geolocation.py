@@ -18,9 +18,6 @@ class Geolocation(BaseModel):
     lon: float = None
     ele: float = None
     tz_str: str = None
-    year: int = None
-    month: int = None
-    day: int = None
     address: str = None
 
     @property
@@ -30,9 +27,6 @@ class Geolocation(BaseModel):
             and isinstance(self.lon, float)
             and isinstance(self.ele, float)
             and isinstance(self.tz_str, str)
-            and isinstance(self.year, int)
-            and isinstance(self.month, int)
-            and isinstance(self.day, int)
         )
 
 
@@ -44,14 +38,12 @@ def render(app: Dash) -> html.Div:
             Output(ids.INPUT_LOCATION, "invalid"),
         ],
         [
-            Input(ids.INPUT_DATE, "date"),
             Input(ids.INPUT_LOCATION, "value"),
         ],
     )
-    def update_geostore(date_value, location_str):
+    def update_geostore(location_str):
         tz_str = None
         tz = None
-        date_object = date.fromisoformat(date_value)
 
         if location_str is not None and location_str != "":
             geolocator = Nominatim(user_agent="myGeocoder")
@@ -75,9 +67,6 @@ def render(app: Dash) -> html.Div:
                     lon=lon,
                     ele=ele,
                     tz_str=tz_str,
-                    year=date_object.year,
-                    month=date_object.month,
-                    day=date_object.day,
                     address=location.address,
                 ).dict(),
                 True,
@@ -117,10 +106,8 @@ def render(app: Dash) -> html.Div:
                         [
                             html.H4(
                                 [
-                                    html.I(className="bi bi-globe"),
-                                    " + ",
-                                    html.I(className="bi bi-calendar-week me-2"),
-                                    " Location & Date",
+                                    html.I(className="bi bi-globe me-2"),
+                                    " Location",
                                 ]
                             ),
                         ]
@@ -148,28 +135,7 @@ def render(app: Dash) -> html.Div:
                                                 ),
                                             ]
                                         )
-                                    ),
-                                    dbc.Col(
-                                        dbc.InputGroup(
-                                            [
-                                                dbc.InputGroupText(
-                                                    html.I(
-                                                        className="bi bi-calendar-week"
-                                                    )
-                                                ),
-                                                dcc.DatePickerSingle(
-                                                    id=ids.INPUT_DATE,
-                                                    display_format="D. MMM YYYY",
-                                                    month_format="D. MMMM YYYY",
-                                                    placeholder="D. MMM YY",
-                                                    date=date.today(),
-                                                    persistence=True,
-                                                    persistence_type="local",
-                                                ),
-                                            ]
-                                        ),
-                                        width="auto",
-                                    ),
+                                    )
                                 ]
                             ),
                             html.P(

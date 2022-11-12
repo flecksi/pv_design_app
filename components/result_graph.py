@@ -8,7 +8,7 @@ from .geolocation import Geolocation
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 import pytz
-from datetime import datetime
+from datetime import date, datetime
 
 import numpy as np
 import pandas as pd
@@ -16,22 +16,25 @@ from scipy.integrate import cumtrapz
 
 
 def create_day_figure(
-    geolocation: Geolocation, allpanels: AllPanels, freq_minutes: int = 30
+    geolocation: Geolocation,
+    allpanels: AllPanels,
+    thedate: date,
+    freq_minutes: int = 30,
 ) -> go.Figure:
     tz = pytz.timezone(geolocation.tz_str)
 
     starttime = datetime(
-        year=geolocation.year,
-        month=geolocation.month,
-        day=geolocation.day,
+        year=thedate.year,
+        month=thedate.month,
+        day=thedate.day,
         hour=0,
         minute=0,
         second=0,
     )
     endtime = datetime(
-        year=geolocation.year,
-        month=geolocation.month,
-        day=geolocation.day,
+        year=thedate.year,
+        month=thedate.month,
+        day=thedate.day,
         hour=23,
         minute=59,
         second=59,
@@ -114,7 +117,7 @@ def create_day_figure(
 
     fig.update_layout(
         hovermode="x unified",
-        title=f"Optimal DC power and energy in one day ({geolocation.day}.{geolocation.month}.{geolocation.year})",
+        title=f"DC power and energy in one day ({thedate.day}.{thedate.month}.{thedate.year}) - best case (not considering weather)",
         yaxis1=dict(title="Power [W]"),
         yaxis2=dict(title="Energy [kWh]"),
     )
@@ -123,12 +126,21 @@ def create_day_figure(
 
 
 def create_annual_figure(
-    geolocation: Geolocation, allpanels: AllPanels, freq_minutes: int = 60
+    geolocation: Geolocation,
+    allpanels: AllPanels,
+    thedate: date,
+    monthly_weather_factors: list[float],
+    freq_minutes: int = 60,
 ) -> tuple[go.Figure, pd.DataFrame]:
     tz = pytz.timezone(geolocation.tz_str)
 
     panel_energy_dfs = [
-        p.monthly_energy(loc=geolocation, year=geolocation.year, label=f"p_{i}")
+        p.monthly_energy(
+            loc=geolocation,
+            monthly_weather_factors=monthly_weather_factors,
+            year=thedate.year,
+            label=f"p_{i}",
+        )
         if p.active and p.ready
         else None
         for i, p in enumerate(allpanels.panels)
@@ -168,11 +180,11 @@ def create_annual_figure(
         # barmode='stack',
         barmode="group",
         # margin=dict(l=10, r=10, t=50, b=5),
-        title=f"Monthly energy yields within one year ({geolocation.year})",
+        title=f"Monthly energy yields within one year ({thedate.year})",
         yaxis_title="Energy [kWh]",
     )
     style_figure(fig=fig)
-    fig.update_layout(margin=dict(l=100, r=115, t=50, b=5))
+    # fig.update_layout(margin=dict(l=100, r=115, t=50, b=5))
 
     return fig, result
 
@@ -210,9 +222,13 @@ def render(app: Dash) -> html.Div:
         Output(ids.DIV_GRAPH, "children"),
         Input(ids.STORE_PANELS, "data"),
         Input(ids.STORE_GEOLOCATION, "data"),
+        Input(ids.STORE_WEATHER, "data"),
+        Input(ids.DATEPICKER, "date"),
         Input(ids.TABS_PLOT, "active_tab"),
     )
-    def render_panels(panel_data: dict, geolocation_data: dict, tab):
+    def render_graph(
+        panel_data: dict, geolocation_data: dict, weather: list, date_value, tab
+    ):
         if panel_data == None:
             panel_data = {}
         if geolocation_data == None:
@@ -220,7 +236,15 @@ def render(app: Dash) -> html.Div:
 
         allpanels = AllPanels(**panel_data)
         geolocation = Geolocation(**geolocation_data)
+        date_object = date.fromisoformat(date_value)
+        # year=date_object.year
+        # month=date_object.month
+        # day=date_object.day
 
+        monthly_weather_factors = [1.0] * 12
+        if isinstance(weather, list):
+            if len(weather) == 12:
+                monthly_weather_factors = weather
         if geolocation.ready == False:
             return html.H4("⇧ 🚫 Please define a location!")
         if len(allpanels.panels) == 0:
@@ -231,12 +255,17 @@ def render(app: Dash) -> html.Div:
             return html.H4("⇦ 🚫 At least one panel is not parametrized!")
 
         if tab == ids.TAB_PLOT_DAY:
-            fig = create_day_figure(geolocation=geolocation, allpanels=allpanels)
+            fig = create_day_figure(
+                geolocation=geolocation, allpanels=allpanels, thedate=date_object
+            )
             return dcc.Graph(figure=fig, responsive=True, style={"height": "70vh"})
 
         elif tab == ids.TAB_PLOT_YEAR:
             fig, df_annual = create_annual_figure(
-                geolocation=geolocation, allpanels=allpanels
+                geolocation=geolocation,
+                monthly_weather_factors=monthly_weather_factors,
+                allpanels=allpanels,
+                thedate=date_object,
             )
             df_annual = df_annual.T
             df_annual["Total"] = df_annual.sum(axis=1)

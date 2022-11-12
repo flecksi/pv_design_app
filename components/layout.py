@@ -2,7 +2,7 @@ from dash import Dash, html, dcc
 
 import dash_bootstrap_components as dbc
 
-from . import geolocation, panels, result_graph, ids
+from . import dateinput, geolocation, weather, panels, result_graph, ids
 
 
 def create_layout(app: Dash) -> dbc.Container:
@@ -21,7 +21,7 @@ def create_layout(app: Dash) -> dbc.Container:
                         )
                     ),
                 ],
-                brand="PV Design - plan your photovoltaic system and estimate it's yield",
+                brand="PV Design - plan your photovoltaic system and estimate its yield",
                 fluid=True,
                 # brand_href="#",
                 color="dark",
@@ -29,36 +29,38 @@ def create_layout(app: Dash) -> dbc.Container:
                 dark=True,
             ),
             dbc.Row(dbc.Col(geolocation.render(app))),
+            dbc.Row(dbc.Col(weather.render(app))),
             dbc.Row(
                 [
                     dbc.Col(
                         children=[panels.render(app)],
-                        # style=dict(background="grey"),
                         width="auto",
                         style={"maxHeight": "70vh", "overflow": "scroll"},
                     ),
                     dbc.Col(
                         children=[
                             dbc.Row(
-                                dbc.Tabs(
-                                    [
-                                        dbc.Tab(
-                                            label="Day",
-                                            tab_style={"marginLeft": "auto"},
-                                            tab_id=ids.TAB_PLOT_DAY,
-                                        ),
-                                        dbc.Tab(
-                                            label="Year",
-                                            tab_style={"marginRight": "auto"},
-                                            tab_id=ids.TAB_PLOT_YEAR,
-                                        ),
-                                    ],
-                                    id=ids.TABS_PLOT,
-                                )
+                                [
+                                    dbc.Tabs(
+                                        [
+                                            dbc.Tab(
+                                                label="Day",
+                                                tab_style={"marginLeft": "auto"},
+                                                tab_id=ids.TAB_PLOT_DAY,
+                                            ),
+                                            dbc.Tab(
+                                                label="Year",
+                                                tab_style={"marginRight": "auto"},
+                                                tab_id=ids.TAB_PLOT_YEAR,
+                                            ),
+                                        ],
+                                        id=ids.TABS_PLOT,
+                                    ),
+                                    dateinput.render(app),
+                                    dbc.Row(result_graph.render(app)),
+                                ]
                             ),
-                            dbc.Row(result_graph.render(app)),
                         ],
-                        # style=dict(background="orange"),
                         width=True,
                     ),
                 ]

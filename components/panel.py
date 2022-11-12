@@ -71,7 +71,12 @@ class Panel(BaseModel):
         return mc.results.dc.values
 
     def monthly_energy(
-        self, loc: Geolocation, year: int, label: str, freq_minutes: int = 60
+        self,
+        loc: Geolocation,
+        monthly_weather_factors: list[float],
+        year: int,
+        label: str,
+        freq_minutes: int = 60,
     ) -> pd.DataFrame:
 
         tz = pytz.timezone(loc.tz_str)
@@ -102,8 +107,7 @@ class Panel(BaseModel):
 
         pwr_mean_W = df_times.groupby("month").mean().pwr.values
         pwr_count_h = df_times.groupby("month").count().pwr.values * freq_minutes / 60
-        e_kWh = pwr_mean_W * pwr_count_h / 1000
-
+        e_kWh = pwr_mean_W * pwr_count_h / 1000 * monthly_weather_factors
         months = [calendar.month_abbr[m + 1] for m in range(12)]
 
         df_result = pd.DataFrame(data={f"{label}": e_kWh}, index=months)
