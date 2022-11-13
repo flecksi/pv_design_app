@@ -12,7 +12,7 @@ from pvlib import pvsystem, modelchain, location
 from functools import lru_cache
 
 from . import ids
-from .geolocation import Geolocation
+from .location import Geolocation
 
 PDC0_DEFAULT = round(5000 / 35, 2)
 
@@ -38,8 +38,10 @@ class Panel(BaseModel):
             and isinstance(self.size_m2, float)
         ) or self.active == False
 
-    def dc_power(self, loc: Geolocation, times: pd.DatetimeIndex) -> np.ndarray:
-        tz = pytz.timezone(loc.tz_str)
+    def dc_power(
+        self, tz_str: str, lat: float, lon: float, ele: float, times: pd.DatetimeIndex
+    ) -> np.ndarray:
+        tz = pytz.timezone(tz_str)
 
         pdc0_specific = (
             self.pdc0_Wpm2 if isinstance(self.pdc0_Wpm2, float) else PDC0_DEFAULT
@@ -60,9 +62,7 @@ class Panel(BaseModel):
                 **array_kwargs,
             )
         ]
-        loc = location.Location(
-            latitude=loc.lat, longitude=loc.lon, tz=tz, altitude=loc.ele
-        )
+        loc = location.Location(latitude=lat, longitude=lon, tz=tz, altitude=ele)
         system = pvsystem.PVSystem(
             arrays=arrays, inverter_parameters=dict(pdc0=pdc0, eta_inv_nom=0.97)
         )
@@ -77,14 +77,17 @@ class Panel(BaseModel):
     # @lru_cache(maxsize=32)
     def monthly_energy(
         self,
-        loc: Geolocation,
-        monthly_weather_factors: list[float],
+        tz_str: str,
+        lat: float,
+        lon: float,
+        ele: float,
+        monthly_weather_factors: tuple[float],
         year: int,
         label: str,
         freq_minutes: int = 60,
     ) -> pd.DataFrame:
 
-        tz = pytz.timezone(loc.tz_str)
+        tz = pytz.timezone(tz_str)
 
         starttime = datetime(
             year=year,
@@ -104,7 +107,7 @@ class Panel(BaseModel):
             tz=tz,
         )[:-1]
 
-        pwr = self.dc_power(loc=loc, times=times)
+        pwr = self.dc_power(tz_str=tz_str, lat=lat, lon=lon, ele=ele, times=times)
 
         df_times = pd.DataFrame(
             dict(pwr=pwr, month=[t.month for t in times]), index=times
@@ -194,6 +197,7 @@ class Panel(BaseModel):
                                     min=0,
                                     max=360,
                                     required=True,
+                                    debounce=True,
                                     inputmode="numeric",
                                     placeholder="0°:N, 90°:E, 180°:S, 270°:W",
                                     id=dict(type=ids.INPUT_PANEL_AZI, index=i),
@@ -218,6 +222,7 @@ class Panel(BaseModel):
                                     min=0,
                                     max=90,
                                     required=True,
+                                    debounce=True,
                                     placeholder="0°:facing up, 90°:facing sideways",
                                     inputmode="numeric",
                                     id=dict(type=ids.INPUT_PANEL_ALT, index=i),
@@ -242,6 +247,7 @@ class Panel(BaseModel):
                                     min=0,
                                     # max=90,
                                     required=True,
+                                    debounce=True,
                                     inputmode="numeric",
                                     placeholder="effective PV area",
                                     id=dict(type=ids.INPUT_PANEL_SIZE, index=i),
@@ -258,6 +264,7 @@ class Panel(BaseModel):
                                     min=0,
                                     # max=90,
                                     # required=True,
+                                    debounce=True,
                                     inputmode="numeric",
                                     placeholder=PDC0_DEFAULT,  # "specific. power/area",
                                     id=dict(

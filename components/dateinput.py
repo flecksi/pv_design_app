@@ -6,6 +6,9 @@ from datetime import date
 
 from . import ids
 
+from .panels import AllPanels
+from .geolocation import Geolocation
+
 
 def render(app: Dash) -> html.Div:
     @app.callback(
@@ -21,6 +24,8 @@ def render(app: Dash) -> html.Div:
     @app.callback(
         Output(ids.DATEPICKER, "date"),
         State(ids.DATEPICKER, "date"),
+        State(ids.STORE_PANELS, "data"),
+        State(ids.STORE_GEOLOCATION, "data"),
         Input(ids.BTN_DATE_TODAY, "n_clicks"),
         Input(ids.BTN_DATE_PMIN, "n_clicks"),
         Input(ids.BTN_DATE_PMAX, "n_clicks"),
@@ -30,27 +35,46 @@ def render(app: Dash) -> html.Div:
     )
     def set_date(
         date_value,
+        panel_data: dict,
+        geolocation_data: dict,
         today_nclicks,
         pmin_nclicks,
         pmax_nclicks,
         emin_nclicks,
         emax_nclicks,
     ):
-        date_object = date.fromisoformat(date_value)
-        active_year = date_object.year
-
         ctx = dash.callback_context
         trigger_id = ctx.triggered[0]["prop_id"].split(".")[0]
         if trigger_id == ids.BTN_DATE_TODAY:
             return date.today().isoformat()
-        elif trigger_id == ids.BTN_DATE_PMIN:
-            raise PreventUpdate  # TODO: set to according optimal day
+
+        if panel_data == None:
+            raise PreventUpdate
+        if geolocation_data == None:
+            raise PreventUpdate
+
+        allpanels = AllPanels(**panel_data)
+        geolocation = Geolocation(**geolocation_data)
+        date_object = date.fromisoformat(date_value)
+        active_year = date_object.year
+
+        daysofinterest = allpanels.get_days_of_interest(
+            year=active_year,
+            tz_str=geolocation.tz_str,
+            lat=geolocation.lat,
+            lon=geolocation.lon,
+            ele=geolocation.ele,
+            freq_minutes=30,
+        )
+
+        if trigger_id == ids.BTN_DATE_PMIN:
+            return daysofinterest.day_Pmin.isoformat()
         elif trigger_id == ids.BTN_DATE_PMAX:
-            raise PreventUpdate  # TODO: set to according optimal day
+            return daysofinterest.day_Pmax.isoformat()
         elif trigger_id == ids.BTN_DATE_EMIN:
-            raise PreventUpdate  # TODO: set to according optimal day
+            return daysofinterest.day_Emin.isoformat()
         elif trigger_id == ids.BTN_DATE_EMAX:
-            raise PreventUpdate  # TODO: set to according optimal day
+            return daysofinterest.day_Emax.isoformat()
         else:
             raise PreventUpdate
 

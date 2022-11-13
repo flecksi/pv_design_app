@@ -70,8 +70,11 @@ def render(app: Dash) -> html.Div:
                         altitude_deg=tilt,
                     )
                     df = p.monthly_energy(
-                        loc=geolocation,
-                        monthly_weather_factors=[1.0] * 12,
+                        tz_str=geolocation.tz_str,
+                        lat=geolocation.lat,
+                        lon=geolocation.lon,
+                        ele=geolocation.ele,
+                        monthly_weather_factors=tuple([1.0] * 12),
                         year=date.today().year,
                         label="o",
                     )

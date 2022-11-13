@@ -26,7 +26,7 @@ def render(app: Dash) -> html.Div:
     )
     def store_weather(overall_percentage, month_percentages, weather_active):
         if weather_active is False:
-            return [1.0] * 12
+            return tuple([1.0] * 12)
         factors = np.array([1.0] * 12)
         if overall_percentage is not None:
             factors *= float(overall_percentage) / 100
@@ -34,7 +34,7 @@ def render(app: Dash) -> html.Div:
         for i, month_percentage in enumerate(month_percentages):
             if month_percentage is not None:
                 factors[i] *= float(month_percentage) / 100
-        return list(factors)
+        return tuple(factors)
 
     return dcc.Loading(
         html.Div(

@@ -49,7 +49,15 @@ def create_day_figure(
     )
 
     dc_powers_W = [
-        p.dc_power(loc=geolocation, times=times) if p.active and p.ready else None
+        p.dc_power(
+            tz_str=geolocation.tz_str,
+            lat=geolocation.lat,
+            lon=geolocation.lon,
+            ele=geolocation.ele,
+            times=times,
+        )
+        if p.active and p.ready
+        else None
         for p in allpanels.panels
     ]
 
@@ -130,14 +138,17 @@ def create_annual_figure(
     geolocation: Geolocation,
     allpanels: AllPanels,
     thedate: date,
-    monthly_weather_factors: list[float],
+    monthly_weather_factors: tuple[float],
     freq_minutes: int = 60,
 ) -> tuple[go.Figure, pd.DataFrame]:
     tz = pytz.timezone(geolocation.tz_str)
 
     panel_energy_dfs = [
         p.monthly_energy(
-            loc=geolocation,
+            tz_str=geolocation.tz_str,
+            lat=geolocation.lat,
+            lon=geolocation.lon,
+            ele=geolocation.ele,
             monthly_weather_factors=monthly_weather_factors,
             year=thedate.year,
             label=f"p_{i}",
@@ -226,31 +237,18 @@ def create_optimal_contour_figure(
     freq_minutes: int = 60,
 ) -> go.Figure:
 
-    opti_matrix_3d = np.array(geolocation.opti_angle_matrix)
-    opti_max = -1
-    opti_matrix_2d = np.zeros(
-        (len(geolocation.opti_azi_vect) + 1, len(geolocation.opti_tilt_vect))
+    (x, y, z) = geolocation.get_opti_matrix(
+        monthly_weather_factors=monthly_weather_factors
     )
-    for i in range(len(geolocation.opti_azi_vect) + 1):
-        for j in range(len(geolocation.opti_tilt_vect)):
-            if i >= len(geolocation.opti_azi_vect):
-                opti = sum(opti_matrix_3d[0, j, :] * monthly_weather_factors)
-            else:
-                opti = sum(opti_matrix_3d[i, j, :] * monthly_weather_factors)
 
-            opti_matrix_2d[i, j] = opti
-            opti_max = max(opti_max, opti)
-
-    opti_matrix_2d = opti_matrix_2d / opti_max * 100.0
-
-    eff_min = np.min(np.min(opti_matrix_2d))
+    eff_min = np.min(np.min(z))
 
     fig = go.Figure()
     fig.add_trace(
         go.Contour(
-            x=geolocation.opti_azi_vect + [360],
-            y=geolocation.opti_tilt_vect,
-            z=np.round(opti_matrix_2d.T, 2),
+            x=x,
+            y=y,
+            z=np.round(z.T, 2),
             name="efficiency",
             hovertemplate="azimuth: %{x}°<br>tilt: %{y}°<br>eff.: %{z}%<extra></extra>",
             contours=dict(
@@ -272,9 +270,9 @@ def create_optimal_contour_figure(
         )
     )
     f = interp2d(
-        geolocation.opti_azi_vect + [360],
-        geolocation.opti_tilt_vect,
-        opti_matrix_2d.T,
+        x,
+        y,
+        z.T,
         kind="cubic",
     )
     for i, p in enumerate(allpanels.panels):
@@ -292,26 +290,13 @@ def create_optimal_contour_figure(
                     marker_symbol="square-cross",
                     hovertemplate=f"<b>{label}</b><br>azimuth: %{{x}}°<br>tilt: %{{y}}°<br>eff.:{eff}%<extra></extra>",
                     marker=dict(
-                        size=30,
+                        size=30,  # p.size_m2,
                         color=p.color,
                         line=dict(width=2, color="DarkSlateGrey"),
                     ),
                 )
             )
-    # fig.add_vline(
-    #     x=180,
-    #     line=dict(color="black", width=2, dash="dash"),
-    #     annotation_text="Optimal Azimuth=180°",
-    #     annotation_position="top left",
-    #     annotation=dict(font_size=20, font_color="black"),
-    # )
-    # fig.add_hline(
-    #     y=34,
-    #     line=dict(color="black", width=2, dash="dash"),
-    #     annotation_text="Optimal Tilt=34°",
-    #     annotation_position="top left",
-    #     annotation=dict(font_size=20, font_color="black"),
-    # )
+
     fig.update_layout(
         margin=dict(l=5, r=5, t=5, b=5),
         yaxis_title="Tilt Angle [deg]",
